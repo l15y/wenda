@@ -19,6 +19,10 @@ from plugins.common import error_helper, error_print, success_print
 from plugins.common import allowCROS
 from plugins.common import settings
 from plugins.common import app
+# from md2pptx.md2pptxllm import writeMdFile, genPPTX
+from md2pptx.md2ppt import writeMdFile, genPPTX
+from img2analysis.imganalysis import gencontent
+from starlette.responses import FileResponse
 import logging
 logging.captureWarnings(True)
 logger = None
@@ -158,6 +162,49 @@ def api_find():
         step = int(settings.library.step)
     return json.dumps(zhishiku.find(prompt, int(step)))
 
+import sys
+import runpy
+
+@route('/genppt', method=("POST", "OPTIONS"))
+def api_genppt():
+    allowCROS()
+    data = request.json
+    if not data:
+        return '0'
+    content = data.get('content')
+    # print(content)
+    # inputfile = writeMdFile('template: CHATOVENS.pptx\n\n' + 'cardlayout: horizontal\n' +
+    #                         'baseTextSize: 20\n' +
+    #                         'CardColour: BACKGROUND 2\n' +
+    #                         'CardTitlePosition: inside\n' +
+    #                         'cardshadow: yes\n' +
+    #                         'cardshape: rounde\n\n' + content)
+    inputfile = writeMdFile(content)
+    now = time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime(time.time()))
+    outputfile = os.getcwd() + os.sep + 'md2pptx' + os.sep + 'data' + os.sep + now + r'output.pptx'
+    # sys.argv.append(inputfile)
+    # sys.argv.append(outputfile)
+    #
+    # runpy.run_path('./md2pptx/md2pptx', init_globals={'sys': sys})
+    outputfile = genPPTX(outputfile, inputfile)
+    return outputfile
+    # print(outputfile)
+    # return FileResponse(outputfile, 'output.pptx')
+
+@app.get('/api/downloadppt')
+def downloadppt(outputfile):
+    allowCROS()
+    noCache()
+    # print(outputfile)
+    return FileResponse(outputfile)
+
+@route('/imganalysis', method=("POST", "OPTIONS"))
+def imganalysis():
+    allowCROS()
+    # data = request.json
+    imgbase64 = request.forms['imgbase64']
+    # print(outputfile)
+    return gencontent(imgbase64)
 
 @route('/completions', method=("POST", "OPTIONS"))
 def api_chat_box():
@@ -335,6 +382,7 @@ async def websocket_endpoint(websocket: WebSocket):
         async with lock:
             print("\033[1;32m"+IP+":\033[1;31m"+prompt+"\033[1;37m")
             try:
+                torch.cuda.empty_cache()
                 for response in LLM.chat_one(prompt, history_formatted, max_length, top_p, temperature, data):
                     if (response):
                         # start = time.time()
@@ -344,6 +392,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         # cost+=end-start
             except Exception as e:
                 error = str(e)
+                torch.cuda.empty_cache()
                 await websocket.send_text("错误"+ error)
                 await websocket.close()
                 raise e

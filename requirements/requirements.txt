@@ -24,6 +24,11 @@ openai
 tiktoken
 loguru
 transformers_stream_generator
+py2neo==2021.2.3
+thulac
+pymongo==4.3.3
+websocket==0.2.1
+websocket-client==1.6.1
 sentencepiece
 python-docx
 accelerate
