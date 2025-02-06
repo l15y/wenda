@@ -1,4 +1,5 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from starlette.middleware.cors import CORSMiddleware  #引入 CORS中间件模块
 from bottle import route, response, request, static_file, hook
 import threading
 import webbrowser
@@ -138,3 +139,14 @@ app = FastAPI(title="Wenda",
               openapi_url="/api/v1/openapi.json",
               docs_url="/api/v1/docs",
               redoc_url="/api/v1/redoc")
+
+#设置允许访问的域名
+origins = ["*"]  #也可以设置为"*"，即为所有。
+
+#设置跨域传参
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  #设置允许的origins来源
+    allow_credentials=True,
+    allow_methods=["*"],  # 设置允许跨域的http方法，比如 get、post、put等。
+    allow_headers=["*"])  #允许跨域的headers，可以用来鉴别来源等作用。
